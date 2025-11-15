@@ -1,0 +1,29 @@
+{
+  "name": "birds-business-manager",
+  "version": "1.0.0",
+  "description": "Complete inventory, sales, and invoicing system for bird seed businesses",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build:backend": "npm run build --prefix backend",
+    "build:frontend": "npm run build --prefix frontend",
+    "build": "npm run build:backend && npm run build:frontend",
+    "start:backend": "npm start --prefix backend",
+    "setup-db": "cd deployment && chmod +x setup-database.sh && ./setup-database.sh"
+  },
+  "keywords": [
+    "inventory",
+    "sales",
+    "invoicing",
+    "bird-seed",
+    "business-management"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
