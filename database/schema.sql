@@ -1,6 +1,8 @@
 -- The Birds Business Manager Database Schema
 
 -- Drop existing tables if they exist (for clean setup)
+DROP TABLE IF EXISTS user_sessions CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS xero_sync_log CASCADE;
 DROP TABLE IF EXISTS availability_schedule CASCADE;
 DROP TABLE IF EXISTS supplier_invoices CASCADE;
@@ -14,6 +16,7 @@ DROP TYPE IF EXISTS pricing_type_enum CASCADE;
 DROP TYPE IF EXISTS customer_type_enum CASCADE;
 DROP TYPE IF EXISTS payment_status_enum CASCADE;
 DROP TYPE IF EXISTS sync_status_enum CASCADE;
+DROP TYPE IF EXISTS user_role_enum CASCADE;
 
 -- Create ENUM types
 CREATE TYPE unit_type_enum AS ENUM ('bag', 'bottle', 'kg', 'each');
@@ -21,6 +24,32 @@ CREATE TYPE pricing_type_enum AS ENUM ('per_unit', 'per_kg');
 CREATE TYPE customer_type_enum AS ENUM ('retail', 'wholesale', 'mates');
 CREATE TYPE payment_status_enum AS ENUM ('paid', 'partial', 'owing');
 CREATE TYPE sync_status_enum AS ENUM ('pending', 'success', 'failed');
+CREATE TYPE user_role_enum AS ENUM ('admin', 'manager', 'staff');
+
+-- Users table
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role user_role_enum NOT NULL DEFAULT 'staff',
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- User sessions table (for JWT token management)
+CREATE TABLE user_sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(50),
+    user_agent TEXT,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Products table
 CREATE TABLE products (
@@ -136,6 +165,13 @@ CREATE TABLE xero_sync_log (
 );
 
 -- Create indexes for better query performance
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_active ON users(is_active);
+CREATE INDEX idx_user_sessions_user ON user_sessions(user_id);
+CREATE INDEX idx_user_sessions_token ON user_sessions(token_hash);
+CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
 CREATE INDEX idx_products_active ON products(is_active);
 CREATE INDEX idx_products_pricing_type ON products(pricing_type);
 CREATE INDEX idx_customers_type ON customers(customer_type);
@@ -162,6 +198,9 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -191,3 +230,14 @@ INSERT INTO customers (name, email, phone, customer_type, credit_limit) VALUES
 
 -- Update balance owing for mate's customer
 UPDATE customers SET discount_amount = 5.00 WHERE customer_type = 'mates';
+
+-- Insert default admin user
+-- Username: admin, Password: admin123 (CHANGE THIS IN PRODUCTION!)
+-- Password hash is bcrypt of 'admin123' with salt rounds 10
+INSERT INTO users (username, email, password_hash, full_name, role) VALUES
+('admin', 'admin@birdsmanager.local', '$2b$10$rBV2IQ/p4YJdJVsS9z7HuOGEKXkH8JYzJYJ8YN3LZ3YZ5LQZJYJ8Y', 'System Administrator', 'admin');
+
+-- Insert test staff user
+-- Username: staff, Password: staff123 (CHANGE THIS IN PRODUCTION!)
+INSERT INTO users (username, email, password_hash, full_name, role) VALUES
+('staff', 'staff@birdsmanager.local', '$2b$10$rBV2IQ/p4YJdJVsS9z7HuOGEKXkH8JYzJYJ8YN3LZ3YZ5LQZJYJ8Y', 'Staff User', 'staff');

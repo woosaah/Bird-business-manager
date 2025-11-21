@@ -5,6 +5,7 @@ export type PricingType = 'per_unit' | 'per_kg';
 export type CustomerType = 'retail' | 'wholesale' | 'mates';
 export type PaymentStatus = 'paid' | 'partial' | 'owing';
 export type SyncStatus = 'pending' | 'success' | 'failed';
+export type UserRole = 'admin' | 'manager' | 'staff';
 
 export interface Product {
   id: number;
@@ -108,6 +109,29 @@ export interface XeroSyncLog {
   synced_at: Date;
   status: SyncStatus;
   error_message?: string;
+  created_at: Date;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  password_hash: string;
+  full_name: string;
+  role: UserRole;
+  is_active: boolean;
+  last_login?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface UserSession {
+  id: number;
+  user_id: number;
+  token_hash: string;
+  ip_address?: string;
+  user_agent?: string;
+  expires_at: Date;
   created_at: Date;
 }
 
