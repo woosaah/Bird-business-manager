@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -9,8 +9,12 @@ import {
   BarChart3,
   Settings,
   Menu,
-  X
+  X,
+  Shield,
+  LogOut,
+  UserCircle
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -20,6 +24,7 @@ interface NavItem {
   name: string;
   path: string;
   icon: ReactNode;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -29,12 +34,28 @@ const navItems: NavItem[] = [
   { name: 'Customers', path: '/customers', icon: <Users className="w-5 h-5" /> },
   { name: 'Sales', path: '/sales', icon: <FileText className="w-5 h-5" /> },
   { name: 'Reports', path: '/reports', icon: <BarChart3 className="w-5 h-5" /> },
+  { name: 'User Management', path: '/users', icon: <Shield className="w-5 h-5" />, adminOnly: true },
   { name: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5" /> },
 ];
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  // Filter nav items based on user role
+  const filteredNavItems = navItems.filter(item => {
+    if (item.adminOnly) {
+      return user?.role === 'admin';
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,7 +91,7 @@ export default function Layout({ children }: LayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 p-4 overflow-y-auto">
             <ul className="space-y-2">
-              {navItems.map((item) => {
+              {filteredNavItems.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <li key={item.path}>
@@ -92,8 +113,26 @@ export default function Layout({ children }: LayoutProps) {
             </ul>
           </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200">
+          {/* Footer - User Info & Logout */}
+          <div className="p-4 border-t border-gray-200 space-y-3">
+            <div className="flex items-center space-x-3 px-2">
+              <UserCircle className="w-8 h-8 text-gray-600" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {user?.full_name}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {user?.role}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
             <p className="text-xs text-gray-500 text-center">
               Version 1.0.0
             </p>
@@ -113,9 +152,15 @@ export default function Layout({ children }: LayoutProps) {
               <Menu className="w-6 h-6" />
             </button>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 ml-auto">
+              <div className="hidden md:flex items-center space-x-3 px-3 py-2 bg-gray-50 rounded-lg">
+                <UserCircle className="w-6 h-6 text-gray-600" />
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{user?.full_name}</p>
+                  <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                </div>
+              </div>
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">Bird Seed Store</p>
                 <p className="text-xs text-gray-500">
                   {new Date().toLocaleDateString('en-NZ', {
                     weekday: 'short',

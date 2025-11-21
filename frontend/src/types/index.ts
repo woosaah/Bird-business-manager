@@ -4,6 +4,7 @@ export type UnitType = 'bag' | 'bottle' | 'kg' | 'each';
 export type PricingType = 'per_unit' | 'per_kg';
 export type CustomerType = 'retail' | 'wholesale' | 'mates';
 export type PaymentStatus = 'paid' | 'partial' | 'owing';
+export type UserRole = 'admin' | 'manager' | 'staff';
 
 export interface Product {
   id: number;
@@ -72,6 +73,23 @@ export interface Payment {
   amount: number;
   payment_method?: string;
   notes?: string;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  is_active: boolean;
+  last_login?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
 }
 
 export interface DashboardStats {

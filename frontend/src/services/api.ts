@@ -3,6 +3,8 @@ import type {
   Product,
   Customer,
   Sale,
+  User,
+  AuthResponse,
   DashboardStats,
   CreateSaleRequest,
   CalculatorRequest,
@@ -17,10 +19,13 @@ const api = axios.create({
   },
 });
 
-// Request interceptor
+// Request interceptor - Add JWT token to requests
 api.interceptors.request.use(
   (config) => {
-    // Add any auth tokens here if needed
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -133,6 +138,35 @@ export const calculatorApi = {
     api.get<ApiResponse<Record<string, number>>>('/api/calculator/weight-prices', {
       params: { price_per_kg: pricePerKg }
     }),
+};
+
+// Auth API
+export const authApi = {
+  login: (username: string, password: string) =>
+    api.post<ApiResponse<AuthResponse>>('/api/auth/login', { username, password }),
+
+  logout: () =>
+    api.post<ApiResponse<void>>('/api/auth/logout'),
+
+  getCurrentUser: () =>
+    api.get<ApiResponse<User>>('/api/auth/me'),
+
+  register: (data: {
+    username: string;
+    email: string;
+    password: string;
+    full_name: string;
+    role?: string;
+  }) => api.post<ApiResponse<User>>('/api/auth/register', data),
+
+  getAllUsers: () =>
+    api.get<ApiResponse<User[]>>('/api/auth/users'),
+
+  updateUser: (id: number, data: Partial<User> & { password?: string }) =>
+    api.put<ApiResponse<User>>(`/api/auth/users/${id}`, data),
+
+  deleteUser: (id: number) =>
+    api.delete<ApiResponse<void>>(`/api/auth/users/${id}`),
 };
 
 export default api;
